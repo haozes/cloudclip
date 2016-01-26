@@ -5,11 +5,9 @@ import socket
 import time
 from threading import Thread
 
-import fcntl
 import struct
 import os
 
-gLastContent = ''
 gServer = None
 
 if os.name != "nt":
@@ -58,8 +56,8 @@ def getClipboardData():
     return pyperclip.paste()
 
 
-def isClipDataChanged():
-    return gLagLastContentstContent != getClipboardData()
+def isClipDataChanged(old):
+    return old != getClipboardData()
 
 
 def listenProc(svr):
@@ -79,13 +77,15 @@ def run(port):
     gServer.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
     gServer.bind(('', port))
 
+    lastContent = ''
+
     t = Thread(target=listenProc, args=(gServer,))
     t.start()
     while True:
-        if isClipDataChanged():
+        if isClipDataChanged(lastContent):
             print("clipboard data changed..")
             str = getClipboardData()
-            gLastContent = str
+            lastContent = str
             gServer.sendto(bytes(str, "utf-8"), ("255.255.255.255", port))
         time.sleep(3)
     pass
